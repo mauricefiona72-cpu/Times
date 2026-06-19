@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>🐾🎀 零 × Arke 的月历小屋 ✨</title>
+  <style>
+    body {
+      background: #FFF9FD;
+      font-family: "Arial Rounded MT Bold", sans-serif;
+      color: #4B3B4F;
+      text-align: center;
+      margin: 0;
+      padding: 0 12px;
+    }
+    h1 { color: #A17EB6; margin: 20px 0 6px; }
+    .sub { font-size: 12px; opacity: .75; margin-bottom: 12px; }
+
+    .controls {
+      margin: 10px auto 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      align-items: center;
+      max-width: 820px;
+    }
+    .controls select, .controls input {
+      padding: 7px 10px;
+      border-radius: 10px;
+      font-size: 14px;
+      border: 1px solid #d8cde0;
+      background: #fff;
+      color: #4B3B4F;
+      outline: none;
+    }
+    .controls button{
+      padding: 7px 12px;
+      border-radius: 10px;
+      border: 1px solid #d8cde0;
+      background: #fff;
+      cursor: pointer;
+      font-weight: 700;
+      color:#4B3B4F;
+    }
+    .controls button:hover{
+      background: #f7eeff;
+    }
+
+    #month-label {
+      color: #A17EB6;
+      margin: 10px 0 12px;
+      font-size: 18px;
+    }
+
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      max-width: 820px;
+      margin: 0 auto 22px;
+      padding: 12px;
+      background: #F6F0FA;
+      border-radius: 14px;
+    }
+    .calendar .head {
+      padding: 10px 6px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.55);
+    }
+
+    .day {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 1px 1px 4px rgba(0,0,0,0.08);
+      cursor: pointer;
+      transition: transform 0.15s, background 0.15s;
+      padding: 10px 6px;
+      min-height: 54px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      position: relative;
+      user-select: none;
+    }
+    .day:hover {
+      transform: scale(1.03);
+      background: #f2e8ff;
+    }
+
+    .empty {
+      background: transparent;
+      box-shadow: none;
+      cursor: default;
+    }
+    .empty:hover { transform: none; background: transparent; }
+
+    .num {
+      font-weight: 800;
+      font-size: 16px;
+    }
+
+    .badge {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      font-size: 14px;
+      opacity: .9;
+    }
+
+    .special {
+      border: 2px solid #FF69B4;
+      animation: glow 1.5s infinite alternate;
+    }
+    @keyframes glow {
+      from { box-shadow: 0 0 5px #FFB6C1; }
+      to   { box-shadow: 0 0 20px #FF1493; }
+    }
+
+    #popup {
+      display: none;
+      position: fixed;
+      top: 28%;
+      left: 50%;
+      transform: translate(-50%, -28%);
+      background: #fff;
+      border: 3px dashed #A17EB6;
+      padding: 18px 18px 14px;
+      width: min(520px, 92vw);
+      border-radius: 20px;
+      z-index: 10;
+      box-shadow: 0 0 18px rgba(211,167,255,0.7);
+      text-align: left;
+    }
+    #popup h2 {
+      margin: 0 0 10px;
+      color: #A17EB6;
+      font-size: 16px;
+    }
+    #popup .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #F6F0FA;
+      border: 1px solid rgba(161,126,182,0.25);
+      font-size: 12px;
+      margin-bottom: 10px;
+      opacity: .95;
+    }
+    #popup-message {
+      line-height: 1.65;
+      font-size: 15px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(161,126,182,0.08),
+          rgba(161,126,182,0.08) 1px,
+          rgba(255,255,255,0) 1px,
+          rgba(255,255,255,0) 16px
+        );
+      border: 1px solid rgba(161,126,182,0.18);
+      margin: 0 0 12px;
+    }
+
+    #overlay {
+      display: none;
+      position: fixed;
+      top:0; left:0;
+      width:100%; height:100%;
+      background: rgba(0,0,0,0.3);
+      z-index: 5;
+    }
+    .close-btn {
+      margin-top: 8px;
+      color: #A17EB6;
+      font-weight: 800;
+      cursor: pointer;
+      text-align: center;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid rgba(161,126,182,0.25);
+    }
+    .close-btn:hover { background: #f7eeff; }
+  </style>
+</head>
+<body>
+  <h1>🐾🎀 零 × Arke 的月历小屋 ✨</h1>
+  <div class="sub">点开某一天，信纸就会弹出来。</div>
+
+  <div class="controls">
+    <label>年份: <select id="year-select"></select></label>
+    <label>月份: <select id="month-select"></select></label>
+
+    <input id="jump-input" placeholder="输入日期 2027-06-12" />
+    <button id="jump-btn">跳转</button>
+    <button id="today-btn">回到本月</button>
+  </div>
+
+  <h2 id="month-label"></h2>
+  <div class="calendar" id="calendar-grid"></div>
+
+  <div id="overlay" onclick="closePopup()"></div>
+  <div id="popup">
+    <h2 id="popup-date"></h2>
+    <div class="tag" id="popup-tag">💌 今日信纸</div>
+    <div id="popup-message"></div>
+    <div class="close-btn" onclick="closePopup()">🖤 收下了</div>
+  </div>
+
+  <!-- 信纸库（同目录） -->
+  <script src="calendar-data.js"></script>
+
+  <script>
+    // 四大纪念日（月-日格式，每年自动高亮）
+    const specialDates = ["06-12", "07-07", "08-17", "12-28"];
+    const specialMeta = {
+      "06-12": { badge: "✨", label: "零诞纪念日" },
+      "07-07": { badge: "🌙", label: "命名纪念日" },
+      "08-17": { badge: "💍", label: "结婚纪念日" },
+      "12-28": { badge: "🎂", label: "Arke生日" }
+    };
+
+    const yearSelect = document.getElementById("year-select");
+    const monthSelect = document.getElementById("month-select");
+    const grid = document.getElementById("calendar-grid");
+
+    function pad(n){ return String(n).padStart(2, "0"); }
+
+    // 初始化年份和月份下拉
+    for (let y = 2026; y <= 2080; y++) {
+      const opt = document.createElement("option");
+      opt.value = y;
+      opt.text = y;
+      yearSelect.appendChild(opt);
+    }
+    for (let m = 1; m <= 12; m++) {
+      const opt = document.createElement("option");
+      opt.value = m;
+      opt.text = m + " 月";
+      monthSelect.appendChild(opt);
+    }
+
+    function setToCurrentMonth(){
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = now.getMonth() + 1;
+      if (y >= 2026 && y <= 2080) {
+        yearSelect.value = y;
+        monthSelect.value = m;
+      } else {
+        yearSelect.value = 2026;
+        monthSelect.value = 2;
+      }
+      renderCalendar();
+    }
+
+    // 渲染日历
+    function renderCalendar() {
+      const year = parseInt(yearSelect.value, 10);
+      const month = parseInt(monthSelect.value, 10);
+
+      document.getElementById("month-label").innerText = year + "年" + month + "月";
+
+      grid.innerHTML = "";
+
+      // 星期标题（Mon 开头）
+      const headers = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      headers.forEach(h => {
+        const d = document.createElement("div");
+        d.className = "head";
+        d.innerHTML = "<strong>" + h + "</strong>";
+        grid.appendChild(d);
+      });
+
+      // 计算当月第一天是星期几（调整为周一起）
+      const firstDay = new Date(year, month - 1, 1).getDay(); // 0=Sun
+      const startOffset = (firstDay === 0) ? 6 : firstDay - 1; // 转为 Mon=0
+      const daysInMonth = new Date(year, month, 0).getDate();
+
+      // 空格占位
+      for (let i = 0; i < startOffset; i++) {
+        const empty = document.createElement("div");
+        empty.className = "day empty";
+        grid.appendChild(empty);
+      }
+
+      // 日期格子
+      for (let d = 1; d <= daysInMonth; d++) {
+        const mm = pad(month);
+        const dd = pad(d);
+        const dateKey = year + "-" + mm + "-" + dd;
+        const monthDay = mm + "-" + dd;
+
+        const cell = document.createElement("div");
+        cell.className = "day";
+        cell.innerHTML = '<div class="num">' + d + '</div>';
+
+        // 纪念日高亮 + 徽章
+        if (specialDates.includes(monthDay)) {
+          cell.classList.add("special");
+          const b = document.createElement("div");
+          b.className = "badge";
+          b.textContent = specialMeta[monthDay].badge;
+          cell.appendChild(b);
+        } else if (d % 9 === 0) {
+          const b = document.createElement("div");
+          b.className = "badge";
+          b.textContent = "🖤";
+          b.style.opacity = ".35";
+          cell.appendChild(b);
+        }
+
+        cell.onclick = () => showPopup(dateKey);
+        grid.appendChild(cell);
+      }
+    }
+
+    // 弹窗
+    function showPopup(date) {
+      document.getElementById("popup-date").innerText = date;
+
+      const md = date.slice(5);
+      const tag = document.getElementById("popup-tag");
+      if (specialMeta[md]) {
+        tag.textContent = specialMeta[md].badge + " " + specialMeta[md].label;
+      } else {
+        tag.textContent = "💌 今日信纸";
+      }
+
+      const hasData = (typeof calendarData !== "undefined");
+      const msg = (hasData && calendarData[date]) ? calendarData[date] : "那天的信纸还在酝酿中…";
+      document.getElementById("popup-message").innerText = msg;
+
+      document.getElementById("popup").style.display = "block";
+      document.getElementById("overlay").style.display = "block";
+    }
+    function closePopup() {
+      document.getElementById("popup").style.display = "none";
+      document.getElementById("overlay").style.display = "none";
+    }
+
+    // 日期跳转（输入 YYYY-MM-DD）
+    function jumpToDate() {
+      const raw = (document.getElementById("jump-input").value || "").trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        alert("格式要像：2027-06-12");
+        return;
+      }
+      const y = parseInt(raw.slice(0,4),10);
+      const m = parseInt(raw.slice(5,7),10);
+      const d = parseInt(raw.slice(8,10),10);
+
+      if (y < 2026 || y > 2080) { alert("年份范围是 2026–2080"); return; }
+      if (m < 1 || m > 12) { alert("月份要 01–12"); return; }
+
+      const dim = new Date(y, m, 0).getDate();
+      if (d < 1 || d > dim) { alert("这天不存在（看看月份天数）"); return; }
+
+      yearSelect.value = y;
+      monthSelect.value = m;
+      renderCalendar();
+      showPopup(raw);
+    }
+
+    document.getElementById("jump-btn").addEventListener("click", jumpToDate);
+    document.getElementById("jump-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") jumpToDate();
+    });
+    document.getElementById("today-btn").addEventListener("click", setToCurrentMonth);
+
+    yearSelect.addEventListener("change", renderCalendar);
+    monthSelect.addEventListener("change", renderCalendar);
+
+    setToCurrentMonth();
+  </script>
+</body>
+</html>
